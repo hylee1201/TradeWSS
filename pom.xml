@@ -1,0 +1,260 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.tdsecurities</groupId>
+	<artifactId>TradesWSS</artifactId>
+	<packaging>jar</packaging>
+	<version>1.0-SNAPSHOT</version>
+	<name>SpringBatchCVR</name>
+	<url>http://maven.apache.org</url>
+
+	<properties>
+		<jdk.version>1.7</jdk.version>
+		<spring.version>3.2.2.RELEASE</spring.version>
+		<spring.batch.version>2.2.0.RELEASE</spring.batch.version>
+		<spring.batch.springmodule.version>0.8a</spring.batch.springmodule.version>
+		<junit.version>4.11</junit.version>
+		<jmail.version>1.4</jmail.version>
+		<log4j.version>1.2.17</log4j.version>
+		<httpclient.version>4.5.1</httpclient.version>
+		<ftpsclient.version>3.9.1</ftpsclient.version>
+	</properties>
+
+	<dependencies>
+
+		<!-- Spring Core -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+
+		<!-- Spring jdbc, for database -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-jdbc</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+
+		<!-- Spring XML to/back object -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-oxm</artifactId>
+			<version>${spring.version}</version>
+		</dependency>
+
+		<!-- Spring Batch dependencies -->
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-core</artifactId>
+			<version>${spring.batch.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.batch</groupId>
+			<artifactId>spring-batch-infrastructure</artifactId>
+			<version>${spring.batch.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.springmodules</groupId>
+			<artifactId>spring-modules-jakarta-commons</artifactId>
+			<version>${spring.batch.springmodule.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>spring-web</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>spring-webmvc</artifactId>
+					<groupId>org.springframework</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-chain</artifactId>
+					<groupId>commons-chain</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>commons-jxpath</artifactId>
+					<groupId>commons-jxpath</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>servlet-api</artifactId>
+					<groupId>javax.servlet</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
+		<dependency>
+		    <groupId>javax.mail</groupId>
+		    <artifactId>mail</artifactId>
+		    <version>${jmail.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+			<version>${httpclient.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.enterprisedt.net</groupId>
+			<artifactId>edtftpjpro</artifactId>
+			<version>${ftpsclient.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>com.enterprisedt.net</groupId>
+			<artifactId>edtftpjprolicense</artifactId>
+			<version>${ftpsclient.version}</version>
+		</dependency>
+
+		<!-- Spring Batch unit test -->
+		<!--
+		<dependency>
+		  <groupId>org.apache.commons</groupId>
+		  <artifactId>commons-collections4</artifactId>
+		  <version>4.1</version>
+		</dependency>
+		-->
+		<!-- Junit -->
+		<!-- https://mvnrepository.com/artifact/commons-io/commons-io -->
+		<dependency>
+    		<groupId>commons-io</groupId>
+    		<artifactId>commons-io</artifactId>
+    		<version>2.5</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>${junit.version}</version>
+			<scope>test</scope>
+			<exclusions>
+				<exclusion>
+					<artifactId>hamcrest-core</artifactId>
+					<groupId>org.hamcrest</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
+		
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>apache-log4j-extras</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
+
+		<!-- Execute the following command. Be sure to modify the jar file name and version as necessary:
+		mvn install:install-file -Dfile=sqljdbc4.jar -Dpackaging=jar 
+		-DgroupId=com.microsoft.sqlserver -DartifactId=sqljdbc4 -Dversion=4.0 -->
+		<dependency>
+		    <groupId>com.microsoft.sqlserver</groupId>
+		    <artifactId>sqljdbc4</artifactId>
+		    <version>4.0</version>
+		</dependency>		
+
+	</dependencies>
+	<build>
+		<finalName>TradesWSS</finalName>
+		<resources>
+	        <resource>
+	            <directory>src/main/resources</directory>
+	            <excludes>
+	                <exclude>**/*.properties</exclude>
+	                <exclude>**/*.xml</exclude>
+	                <exclude>**/*.bat</exclude>
+	            </excludes>
+	            <filtering>false</filtering>
+	        </resource>
+	    </resources>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-eclipse-plugin</artifactId>
+				<version>2.9</version>
+				<configuration>
+					<downloadSources>true</downloadSources>
+					<downloadJavadocs>false</downloadJavadocs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>${jdk.version}</source>
+					<target>${jdk.version}</target>
+				</configuration>
+			</plugin>
+			<!--  
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<version>2.4.1</version>
+				<configuration>
+				get all project dependencies<descriptorRef>jar-with-dependencies</descriptorRef>
+					</descriptorRefs>
+					MainClass in mainfest make a executable jar
+					<archive>
+					  <manifest>
+						<mainClass>com.mkyong.core.utils.App</mainClass>
+					  </manifest>
+					</archive>
+
+				</configuration>
+				<executions>
+				  <execution>
+					<id>make-assembly</id>
+                                       bind to the packaging phase 
+					<phase>package</phase> 
+					<goals>
+						<goal>single</goal>
+					</goals>
+				  </execution>
+				</executions>
+			</plugin>-->
+			<plugin>  
+              <groupId>org.apache.maven.plugins</groupId>  
+               <artifactId>maven-assembly-plugin</artifactId>  
+             <executions>  
+                     <execution>  
+                          <id>create-distribution</id>  
+                            <phase>install</phase>  
+                           <goals>  
+                                <goal>single</goal>  
+                          </goals>  
+                           <configuration>  
+                               <descriptors>  
+                                    <descriptor>src/main/assembly/app-assembly.xml</descriptor>  
+                                </descriptors>  
+                            </configuration>  
+                     </execution>  
+                 </executions>  
+            </plugin>  
+            <plugin>  
+                 <groupId>org.apache.maven.plugins</groupId>  
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.3.1</version>  
+                 <configuration>
+                 <excludes>
+                 	<exclude>spring/**</exclude>
+                 	<exclude>**/*.properties</exclude>
+                 </excludes>  
+                    <archive>  
+                          <manifest>  
+                                <addClasspath>false</addClasspath>  
+                                <classpathPrefix>lib/</classpathPrefix>  
+                                <mainClass>com.tdsecurities.batch.WssBatch</mainClass>  
+                         </manifest>  
+                       </archive>  
+                 </configuration>  
+           </plugin>  
+			
+		</plugins>
+	</build>
+	
+</project>
