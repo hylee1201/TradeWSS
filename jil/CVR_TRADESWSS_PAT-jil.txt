@@ -1,0 +1,14 @@
+insert_job: PAT_CVR_CMD_TradeWSS
+job_type: CMD
+command: C\:\CVR\TradesWSS\RunTradesWSS.bat
+machine: siaaavbc01cvr.p-tdbfg.com
+owner: wwwsacvr01@p-tdbfg
+date_conditions: 1
+days_of_week: mo,tu,we,th,fr
+start_times: "08:15"
+alarm_if_fail: 1
+send_notification: y
+notification_msg:Autosys TradesWSS PAT testing
+notification_emailaddress: cvrapplicationsupport@tdsecurities.com
+std_out_file: C\:\CVR\logs\%AUTO_JOB_NAME%.%AUTORUN%.out
+std_err_file: C\:\CVR\logs\%AUTO_JOB_NAME%.%AUTORUN%.err
