@@ -1,0 +1,330 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:batch="http://www.springframework.org/schema/batch" xmlns:util="http://www.springframework.org/schema/util"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+
+	xsi:schemaLocation="http://www.springframework.org/schema/batch
+		http://www.springframework.org/schema/batch/spring-batch-2.2.xsd
+		http://www.springframework.org/schema/beans 
+		
+		http://www.springframework.org/schema/beans/spring-beans-3.2.xsd
+		http://www.springframework.org/schema/context http://www.springframework.org/schema/util http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	">
+
+
+	<!-- context:property-placeholder location="batch.properties" / -->
+
+	<bean
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="properties" ref="commonsConfigurationFactoryBean" />
+		<!-- property name="location" value="classpath:email.properties"/> <property 
+			name="location" value="classpath:batch.properties"/ -->
+		<property name="locations">
+			<list>
+			</list>
+		</property>
+
+	</bean>
+
+	<bean id="commonsConfigurationFactoryBean"
+		class="org.springmodules.commons.configuration.CommonsConfigurationFactoryBean">
+		<constructor-arg ref="databaseConfiguration" />
+	</bean>
+
+	<bean id="databaseConfiguration" class="org.apache.commons.configuration.DatabaseConfiguration">
+		<constructor-arg type="javax.sql.DataSource" ref="dataSource" />
+		<constructor-arg index="1" value="env_lookup" />
+		<constructor-arg index="2" value="key_name" />
+		<constructor-arg index="3" value="key_value" />
+	</bean>
+
+
+	<import resource="../config/context.xml" />
+	<import resource="../config/database.xml" />
+
+	<bean id="oISreport" class="com.tdsecurities.cvr.batch.item.OISReport"
+		scope="prototype" />
+	<bean id="dataHolder" class="com.tdsecurities.cvr.util.DataHolder" />
+
+	<batch:job id="wsstradeWSS">
+
+		<batch:step id="determineFileNameDate" next="downloadFile">
+			<batch:tasklet ref="preSetting">
+				<batch:listeners>
+					<batch:listener ref="promotionListener" />
+					<batch:listener>
+						<bean id="stepCompletionListener"
+							class="com.tdsecurities.common.listener.StepCompletionListener">
+							<property name="task" value="DETERMINING FILE NAME WITH DATE" />
+							<property name="taskNumber" value="1" />
+						</bean>
+					</batch:listener>
+				</batch:listeners>
+			</batch:tasklet>
+		</batch:step>
+
+		<batch:step id="downloadFile" next="feedFileDecision">
+			<batch:tasklet ref="feedDownloadTasklet">
+			</batch:tasklet>
+			<batch:listeners>
+				<batch:listener>
+					<bean id="stepCompletionListener"
+						class="com.tdsecurities.common.listener.StepCompletionListener">
+						<property name="task" value="DOWNLOADING FILE" />
+						<property name="taskNumber" value="2" />
+					</bean>
+				</batch:listener>
+			</batch:listeners>
+		</batch:step>
+
+		<batch:decision id="feedFileDecision" decider="skippedItemsDecider">
+			<batch:next on="failure" to="createTransactionRecord" />
+			<batch:next on="*" to="process" />
+		</batch:decision>
+
+		<batch:step id="process" next="createTransactionRecord">
+			<batch:tasklet>
+				<batch:chunk reader="syncItemReader" writer="wSSReportItemWriter"
+					processor="wSSFilterItemProcessor" commit-interval="5000" />
+			</batch:tasklet>
+			<batch:listeners>
+				<batch:listener>
+					<bean id="stepCompletionListener"
+						class="com.tdsecurities.common.listener.StepCompletionListener">
+						<property name="task" value="PROCESSING" />
+						<property name="taskNumber" value="3" />
+					</bean>
+				</batch:listener>
+			</batch:listeners>
+		</batch:step>
+
+		<batch:step id="createTransactionRecord" next="cleanup">
+			<batch:tasklet ref="transactionRecordTasklet">
+			</batch:tasklet>
+			<batch:listeners>
+				<batch:listener>
+					<bean id="stepCompletionListener"
+						class="com.tdsecurities.common.listener.StepCompletionListener">
+						<property name="task" value="CREATING TRANSACTION RECORD" />
+						<property name="taskNumber" value="4" />
+					</bean>
+				</batch:listener>
+			</batch:listeners>
+		</batch:step>
+
+		<batch:step id="cleanup" next="exceptionsEmailing">
+			<batch:tasklet ref="cleanupTasklet">
+			</batch:tasklet>
+			<batch:listeners>
+				<batch:listener>
+					<bean id="stepCompletionListener"
+						class="com.tdsecurities.common.listener.StepCompletionListener">
+						<property name="task" value="FILE CLEANUP" />
+						<property name="taskNumber" value="5" />
+					</bean>
+				</batch:listener>
+			</batch:listeners>
+		</batch:step>
+		
+		<batch:step id="exceptionsEmailing">
+			<batch:tasklet ref="exceptionsEmailingTasklet">
+			</batch:tasklet>
+			<batch:listeners>
+				<batch:listener>
+					<bean id="stepCompletionListener"
+						class="com.tdsecurities.common.listener.StepCompletionListener">
+						<property name="task" value="FINAL JOB STATUS" />
+						<property name="taskNumber" value="6" />
+					</bean>
+				</batch:listener>
+			</batch:listeners>
+		</batch:step>
+
+
+		<!-- <batch:step id="cleanup" > <batch:tasklet> <batch:chunk reader="dBItemtemReader" 
+			writer="cvsFileItemWriter" processor="itemProcessor" commit-interval="1" 
+			/> </batch:tasklet> </batch:step> -->
+	</batch:job>
+
+	<bean id="taskExecutor"
+		class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="5" />
+		<property name="maxPoolSize" value="5" />
+	</bean>
+
+	<bean id="preSetting" class="com.tdsecurities.cvr.batch.PreTasklet"
+		scope="step">
+		<property name="remotePath" value="${WSS_REMOTE_PATH}" />
+		<property name="fileNameFormat" value="${WSS_FILE_FORMAT}" />
+		<property name="valuationDateSTR" value="${WSS_VALUATION_DATE}" />
+		<property name="batchService" ref="tradeWssBatchService" />
+		<property name="handler" ref="exceptionHandler"/>
+	</bean>
+
+	<bean id="promotionListener"
+		class="org.springframework.batch.core.listener.ExecutionContextPromotionListener">
+		<property name="keys">
+			<list>
+				<value>date</value>
+				<value>rate</value>
+				<value>fileName</value>
+				<value>path</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="skippedItemsDecider" class="com.tdsecurities.common.batch.FlowDecider">
+		<property name="batchService" ref="tradeWssBatchService" />
+	</bean>
+
+
+	<bean id="tradeWssBatchService" class="com.tdsecurities.cvr.batch.service.TradeWssBatchService">
+		<constructor-arg ref="dataSource" />
+		<property name="valuationDateKey" value="WSS_VALUATION_DATE" />
+	</bean>
+
+	<bean id="exceptionHandler" class="com.tdsecurities.cvr.util.ExceptionHandler">
+		<property name="mailSender" ref="mailSender" />
+		<property name="preConfiguredMessage" ref="failureMessage" />
+	</bean>
+	
+	<bean id="fileDownloadService" class="com.tdsecurities.common.service.HttpFileDownloadService">
+		<property name="serverHost" value="${WSS_HOST_NAME}" />
+		<property name="userName" value="${WSS_USER_NAME}" />
+		<property name="password" value="${WSS_USER_PASSWORD}" />
+		<property name="port" value="${WSS_HOST_PORT}" />
+	</bean>
+
+	<!-- bean id="fileDownloadService" class="com.tdsecurities.batch.service.HttpFileDownloadService"> 
+		<property name="serverHost" value="${WSS_HOST_NAME}"/> <property name="userName" 
+		value="${WSS_USER_NAME}"/> <property name="password" value="${WSS_USER_PASSWORD}"/> 
+		<property name="port" value="${WSS_HOST_PORT}"/> <property name="remotePath" 
+		value="#{jobExecutionContext['path']}"/> <property name="filename" value="#{jobExecutionContext['filename']}"/> 
+		<property name="filename" value="LON_CURVE-INSTR-MAPPING_20151026.csv"/> 
+		<property name="localPath" value="downloads/"/> <property name="localPath" 
+		value="downloads/"/> </bean -->
+
+	<bean id="exceptionsEmailingTasklet" class="com.tdsecurities.common.batch.ExceptionsEmailingTasklet"
+		scope="step">
+		<property name="handler" ref="exceptionHandler"/>
+	</bean>
+	
+	<bean id="feedDownloadTasklet" class="com.tdsecurities.common.batch.FeedDownloadTasklet"
+		scope="step">
+		<property name="remotePath" value="#{jobExecutionContext['path']}" />
+		<property name="localPath" value="${WSS_DOWNLOAD_DIR}" />
+		<property name="filename" value="#{jobExecutionContext['fileName']}" />
+		<property name="filedownloadService" ref="fileDownloadService" />
+		<property name="handler" ref="exceptionHandler"/>
+	</bean>
+
+	<bean id="transactionRecordTasklet" class="com.tdsecurities.cvr.batch.wss.WSSTransferRecordTasklet"
+		scope="step">
+		<property name="batchJobName" value="#{jobParameters['batchFile']}" />
+		<property name="valuationDate" value="#{jobExecutionContext['date']}" />
+		<property name="success" value="#{jobExecutionContext['success']}" />
+		<property name="groupType" value="WSS OIS VS" />
+		<property name="batchService" ref="tradeWssBatchService" />
+		<property name="warningDataHolder" ref="dataHolder" />
+		<property name="handler" ref="exceptionHandler"/>
+	</bean>
+
+
+	<bean id="failureEmailSendTasklet" class="com.tdsecurities.common.batch.EmailerTasklet"
+		scope="step">
+		<property name="mailSender" ref="mailSender" />
+		<property name="preConfiguredMessage" ref="failureMessage" />
+		<property name="batchService" ref="tradeWssBatchService" />
+		<property name="batchJobName" value="#{jobParameters['batchFile']}" />
+	</bean>
+
+	<bean id="cleanupTasklet" class="com.tdsecurities.cvr.batch.wss.WSSCleanupTasklet"
+		scope="step">
+		<property name="logPath" value="${BATCH_LOG_DIR}" />
+		<property name="batchLogDaysToKeep" value="${BATCH_LOG_DAYS_TO_KEEP}" />
+		<property name="downloadfolder" value="${WSS_DOWNLOAD_DIR}" />
+		<property name="fileService" ref="fileDownloadService" />
+		<property name="batchService" ref="tradeWssBatchService" />
+		<property name="handler" ref="exceptionHandler"/>
+	</bean>
+
+	<bean id="mailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host" value="${MAIL_SMTP_HOST}" />
+		<property name="port" value="25" />
+		<property name="protocol">
+			<value>smtp</value>
+		</property>
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.transport.protocol">smtp</prop>
+				<prop key="mail.smtp.auth">false</prop>
+				<prop key="mail.smtps.ssl.checkserveridentity">true</prop>
+				<prop key="mail.smtps.ssl.trust">*</prop>
+				<prop key="mail.smtp.starttls.enable">true</prop>
+				<prop key="mail.debug">true</prop>
+			</props>
+		</property>
+	</bean>
+	
+	<bean id="failureMessage" class="org.springframework.mail.SimpleMailMessage">
+		<property name="to" value="${WSS_MAIL_FROM_ADDRESS}"></property>
+		<property name="from" value="${WSS_MAIL_TO_ADDRESS}"></property>
+		<property name="subject"
+			value="DO NOT REPLY: FAILURE - (CVR) Trades WSS Batch job - ${REGION}" />
+	</bean>
+
+	<bean id="syncItemReader"
+		class="com.tdsecurities.cvr.batch.thread.SynchronizingItemReader"
+		scope="step">
+		<property name="delegate">
+			<bean id="cvsFileItemReader"
+				class="org.springframework.batch.item.file.FlatFileItemReader">
+				<property name="linesToSkip" value="1" />
+				<property name="skippedLinesCallback">
+					<bean class="com.tdsecurities.cvr.batch.wss.WSSHeaderHandler" />
+				</property>
+				<property name="resource"
+					value="file:${WSS_DOWNLOAD_DIR}/#{jobExecutionContext['fileName']}" />
+
+				<property name="lineMapper">
+					<bean
+						class="org.springframework.batch.item.file.mapping.DefaultLineMapper">
+						<property name="lineTokenizer">
+							<bean
+								class="org.springframework.batch.item.file.transform.DelimitedLineTokenizer">
+								<property name="delimiter" value="," />
+							</bean>
+						</property>
+						<property name="fieldSetMapper">
+
+							<bean class="com.tdsecurities.cvr.batch.mapper.OISReportFieldSetMapper" />
+							<!-- <bean class="org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper"> 
+								<property name="prototypeBeanName" value="oISreport" /> </bean> -->
+						</property>
+					</bean>
+				</property>
+			</bean>
+		</property>
+	</bean>
+
+	<bean id="wSSFilterItemProcessor" class="com.tdsecurities.cvr.batch.wss.WSSFilterItemProcessor"
+		scope="step">
+		<property name="date" value="#{jobExecutionContext['date']}" />
+		<property name="rate" value="#{jobExecutionContext['rate']}" />
+		<property name="warningDataHolder" ref="dataHolder" />
+
+		<property name="policies">
+			<list>
+				<value>International Fixed Income</value>
+				<value>Local Currency Trading</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="wSSReportItemWriter" class="com.tdsecurities.cvr.batch.ReportItemWriter">
+		<property name="batchService" ref="tradeWssBatchService" />
+	</bean>
+
+
+</beans>
+
