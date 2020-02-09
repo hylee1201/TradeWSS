@@ -11,7 +11,7 @@
 	<properties>
 		<jdk.version>1.7</jdk.version>
 		<spring.version>3.2.2.RELEASE</spring.version>
-		<spring.batch.version>2.2.0.RELEASE</spring.batch.version>
+		<spring.batch.version>4.2.1.RELEASE</spring.batch.version>
 		<spring.batch.springmodule.version>0.8a</spring.batch.springmodule.version>
 		<junit.version>4.11</junit.version>
 		<jmail.version>1.4</jmail.version>
