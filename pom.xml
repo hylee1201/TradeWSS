@@ -13,7 +13,7 @@
 		<spring.version>3.2.2.RELEASE</spring.version>
 		<spring.batch.version>2.2.0.RELEASE</spring.batch.version>
 		<spring.batch.springmodule.version>0.8a</spring.batch.springmodule.version>
-		<junit.version>4.11</junit.version>
+		<junit.version>4.13.1</junit.version>
 		<jmail.version>1.4</jmail.version>
 		<log4j.version>1.2.17</log4j.version>
 		<httpclient.version>4.5.1</httpclient.version>
